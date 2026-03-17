@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>健康证查询</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm">
+    <h2 class="text-xl font-bold text-center mb-4">健康证信息</h2>
+    <div id="loading" class="text-center py-8">加载中...</div>
+    <div id="result" class="hidden space-y-3">
+      <img id="avatar" class="w-24 h-24 rounded-full mx-auto border-2 border-blue-500 object-cover" src="">
+      <p><span class="font-semibold">姓名：</span><span id="name"></span></p>
+      <p><span class="font-semibold">健康证号：</span><span id="id"></span></p>
+      <p><span class="font-semibold">单位：</span><span id="dept"></span></p>
+      <p><span class="font-semibold">有效期：</span><span id="valid"></span></p>
+    </div>
+    <div id="error" class="hidden text-red-500 text-center py-8">未找到信息</div>
+  </div>
+
+  <script>
+    // 1. 替换为你的飞书多维表格公开API链接（后面教你拿）
+    const API_URL = "https://open.feishu.cn/open-apis/bitable/v1/apps/xxx/tables/xxx/records";
+    const params = new URLSearchParams(window.location.search);
+    const userId = params.get("id");
+
+    if (!userId) {
+      document.getElementById("loading").classList.add("hidden");
+      document.getElementById("error").classList.remove("hidden");
+      throw new Error("缺少ID");
+    }
+
+    // 模拟请求（测试用，正式用飞书API）
+    async function loadData() {
+      // 测试数据，正式替换为飞书API请求
+      const mockData = [
+        {id:"100001", name:"张三", dept:"XX餐厅", valid:"2026.12.31", avatar:"https://xxx/100001.jpg"},
+        {id:"100002", name:"李四", dept:"XX超市", valid:"2026.12.31", avatar:"https://xxx/100002.jpg"}
+      ];
+      const user = mockData.find(u => u.id === userId);
+      if (user) showUser(user);
+      else showError();
+    }
+
+    function showUser(user) {
+      document.getElementById("loading").classList.add("hidden");
+      document.getElementById("result").classList.remove("hidden");
+      document.getElementById("avatar").src = user.avatar;
+      document.getElementById("name").textContent = user.name;
+      document.getElementById("id").textContent = user.id;
+      document.getElementById("dept").textContent = user.dept;
+      document.getElementById("valid").textContent = user.valid;
+    }
+
+    function showError() {
+      document.getElementById("loading").classList.add("hidden");
+      document.getElementById("error").classList.remove("hidden");
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
