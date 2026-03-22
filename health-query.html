@@ -170,31 +170,12 @@
 }
 
     // 查询多维表格
-    async function searchRecord(id) {
-  const token = await getToken()
-  // 同样加上 CORS 代理地址
-  const url = `https://api.allorigins.win/raw?url=https://open.feishu.cn/open-apis/bitable/v1/apps/${CONFIG.APP_TOKEN}/tables/${CONFIG.TABLE_ID}/records/search`
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      field_names: Object.values(CONFIG.FIELD),
-      filter: {
-        conjunction: 'and',
-        conditions: [{
-          field_name: CONFIG.FIELD.ID,
-          operator: 'is',
-          value: id
-        }]
-      },
-      page_size: 1
-    })
-  })
+    // 示例：替换成你的飞书公开视图链接
+const PUBLIC_URL = "https://my.feishu.cn/wiki/XkinwFwUQi0eQTkPdUCcuJZtn1d?table=tbl35kCkc3xqWf7B&view=vew7lhKdrk"
+
+async function searchRecord(id) {
+  const resp = await fetch(`https://api.allorigins.win/raw?url=${PUBLIC_URL}&filter=健康证号:${id}`)
   const data = await resp.json()
-  if (data.code !== 0) throw new Error('查询多维表格失败：' + data.msg)
   return data.data?.items || []
 }
 
