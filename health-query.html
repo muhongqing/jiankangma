@@ -156,7 +156,7 @@
     // 获取飞书tenant access token
     async function getToken() {
   // 加上 CORS 代理地址：https://corsproxy.io/?
-  const resp = await fetch('https://corsproxy.io/?https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', {
+  const resp = await fetch('https://api.allorigins.win/raw?url=https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -173,7 +173,7 @@
     async function searchRecord(id) {
   const token = await getToken()
   // 同样加上 CORS 代理地址
-  const url = `https://corsproxy.io/?https://open.feishu.cn/open-apis/bitable/v1/apps/${CONFIG.APP_TOKEN}/tables/${CONFIG.TABLE_ID}/records/search`
+  const url = `https://api.allorigins.win/raw?url=https://open.feishu.cn/open-apis/bitable/v1/apps/${CONFIG.APP_TOKEN}/tables/${CONFIG.TABLE_ID}/records/search`
   const resp = await fetch(url, {
     method: 'POST',
     headers: {
