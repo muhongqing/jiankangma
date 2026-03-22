@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>沈阳市从业人员健康体检合格证明</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;font-family:"Microsoft Yahei",system-ui,sans-serif}
+    body{
+      background: linear-gradient(to bottom, #e6f3ff 0%, #ffffff 100%);
+      min-height: 100vh;
+      padding: 20px;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+    }
+    .cert-card{
+      background: transparent;
+      width: 100%;
+      max-width: 800px;
+      text-align: center;
+    }
+    .title{
+      font-size: 28px;
+      font-weight: bold;
+      color: #000000;
+      margin-bottom: 20px;
+    }
+    .photo-box{
+      width: 280px;
+      height: 320px;
+      margin: 0 auto 30px;
+      border: 1px solid #eee;
+      background: #fff;
+      overflow: hidden;
+    }
+    .photo-box img{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .info-row{
+      font-size: 22px;
+      text-align: left;
+      margin: 18px 0;
+      padding-left: 40px;
+      line-height: 1.6;
+    }
+    .label{
+      display: inline-block;
+      min-width: 100px;
+      font-weight: 500;
+      color: #000;
+    }
+    .value{
+      color: #000;
+      font-weight: 500;
+    }
+    .unit{
+      font-size: 20px;
+      color: #a82020;
+      margin-top: 40px;
+      text-align: center;
+      font-weight: 500;
+    }
+    .loading{
+      font-size: 20px;
+      color: #0066cc;
+      padding: 40px 0;
+    }
+    .error{
+      font-size: 20px;
+      color: #cc0000;
+      padding: 40px 0;
+    }
+    .empty{
+      font-size: 20px;
+      color: #666;
+      padding: 40px 0;
+    }
+    #result{
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="cert-card">
+    <div class="title">沈阳市从业人员健康体检合格证明</div>
+
+    <div id="loading" class="loading">正在查询健康证信息...</div>
+    <div id="error" class="error" style="display:none"></div>
+    <div id="empty" class="empty" style="display:none">未查询到对应健康证信息</div>
+
+    <div id="result">
+      <div class="photo-box">
+        <!-- 飞书表格中存储照片URL的字段，会自动填充 -->
+        <img id="photo" src="" alt="证件照片">
+      </div>
+
+      <div class="info-row">
+        <span class="label">姓名：</span>
+        <span class="value" id="name"></span>
+        <span class="label" style="margin-left: 40px;">性别：</span>
+        <span class="value" id="gender"></span>
+      </div>
+
+      <div class="info-row">
+        <span class="label">年龄：</span>
+        <span class="value" id="age"></span>
+        <span class="label" style="margin-left: 40px;">健康证号：</span>
+        <span class="value" id="id"></span>
+      </div>
+
+      <div class="info-row">
+        <span class="label">行业：</span>
+        <span class="value" id="industry"></span>
+        <span class="label" style="margin-left: 40px;">单位：</span>
+        <span class="value" id="unit"></span>
+      </div>
+
+      <div class="info-row">
+        <span class="label">有效期：</span>
+        <span class="value" id="expire"></span>
+      </div>
+
+      <div class="unit">制证单位：<span id="make_unit"></span></div>
+    </div>
+  </div>
+
+  <script>
+    // ========== 只需要修改这里的参数（4个必填+字段名） ==========
+    const CONFIG = {
+  APP_ID: 'cli_a93270618db81bc9',
+  APP_SECRET: 'QohPjXwBEsrIwYd6y5FsRefmlGwfN6Bx',
+  APP_TOKEN: 'XkinwFwUQi0eQTkPdUCcuJZtn1d',
+  TABLE_ID: 'tbl35kCkc3xqWf7B',
+  FIELD: {
+    ID: '健康证号',
+    NAME: '姓名',
+    GENDER: '性别',
+    AGE: '年龄',
+    INDUSTRY: '行业',
+    UNIT: '单位',
+    EXPIRE: '有效期',
+    MAKE_UNIT: '制证单位',
+    PHOTO: '照片URL'
+  }
+}
+
+    // 获取URL中的id参数
+    function getQueryId() {
+      const params = new URLSearchParams(window.location.search)
+      return params.get('id')?.trim() || ''
+    }
+
+    // 获取飞书tenant access token
+    async function getToken() {
+      const resp = await fetch('https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          app_id: CONFIG.APP_ID,
+          app_secret: CONFIG.APP_SECRET
+        })
+      })
+      const data = await resp.json()
+      if (data.code !== 0) throw new Error('获取飞书授权token失败：' + data.msg)
+      return data.tenant_access_token
+    }
+
+    // 查询多维表格
+    async function searchRecord(id) {
+      const token = await getToken()
+      const url = `https://open.feishu.cn/open-apis/bitable/v1/apps/${CONFIG.APP_TOKEN}/tables/${CONFIG.TABLE_ID}/records/search`
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          field_names: Object.values(CONFIG.FIELD),
+          filter: {
+            conjunction: 'and',
+            conditions: [{
+              field_name: CONFIG.FIELD.ID,
+              operator: 'is',
+              value: id
+            }]
+          },
+          page_size: 1
+        })
+      })
+      const data = await resp.json()
+      if (data.code !== 0) throw new Error('查询多维表格失败：' + data.msg)
+      return data.data?.items || []
+    }
+
+    // 显示结果（完全匹配健康证样式）
+    function showResult(record) {
+      document.getElementById('loading').style.display = 'none'
+      if (!record) {
+        document.getElementById('empty').style.display = 'block'
+        return
+      }
+
+      const f = record.fields
+      document.getElementById('result').style.display = 'block'
+
+      // 填充所有字段（和你提供的健康证完全对应）
+      document.getElementById('name').textContent = f[CONFIG.FIELD.NAME] || '-'
+      document.getElementById('gender').textContent = f[CONFIG.FIELD.GENDER] || '-'
+      document.getElementById('age').textContent = f[CONFIG.FIELD.AGE] || '-'
+      document.getElementById('id').textContent = f[CONFIG.FIELD.ID] || '-'
+      document.getElementById('industry').textContent = f[CONFIG.FIELD.INDUSTRY] || '-'
+      document.getElementById('unit').textContent = f[CONFIG.FIELD.UNIT] || '-'
+      document.getElementById('expire').textContent = f[CONFIG.FIELD.EXPIRE] || '-'
+      document.getElementById('make_unit').textContent = f[CONFIG.FIELD.MAKE_UNIT] || '-'
+      
+      // 填充照片（如果飞书有照片URL）
+      const photoUrl = f[CONFIG.FIELD.PHOTO]
+      if (photoUrl) {
+        document.getElementById('photo').src = photoUrl
+      } else {
+        document.getElementById('photo').alt = '暂无照片'
+      }
+    }
+
+    // 入口执行
+    (async function main() {
+      const id = getQueryId()
+      if (!id) {
+        document.getElementById('loading').style.display = 'none'
+        document.getElementById('error').innerText = '请通过正确链接访问，格式：?id=健康证号'
+        document.getElementById('error').style.display = 'block'
+        return
+      }
+
+      try {
+        const items = await searchRecord(id)
+        showResult(items[0])
+      } catch (e) {
+        document.getElementById('loading').style.display = 'none'
+        document.getElementById('error').innerText = '查询异常：' + e.message
+        document.getElementById('error').style.display = 'block'
+      }
+    })()
+  </script>
+</body>
+</html>
