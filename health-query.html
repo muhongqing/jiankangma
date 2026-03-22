@@ -155,46 +155,48 @@
 
     // 获取飞书tenant access token
     async function getToken() {
-      const resp = await fetch('https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          app_id: CONFIG.APP_ID,
-          app_secret: CONFIG.APP_SECRET
-        })
-      })
-      const data = await resp.json()
-      if (data.code !== 0) throw new Error('获取飞书授权token失败：' + data.msg)
-      return data.tenant_access_token
-    }
+  // 加上 CORS 代理地址：https://corsproxy.io/?
+  const resp = await fetch('https://corsproxy.io/?https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      app_id: CONFIG.APP_ID,
+      app_secret: CONFIG.APP_SECRET
+    })
+  })
+  const data = await resp.json()
+  if (data.code !== 0) throw new Error('获取飞书授权token失败：' + data.msg)
+  return data.tenant_access_token
+}
 
     // 查询多维表格
     async function searchRecord(id) {
-      const token = await getToken()
-      const url = `https://open.feishu.cn/open-apis/bitable/v1/apps/${CONFIG.APP_TOKEN}/tables/${CONFIG.TABLE_ID}/records/search`
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          field_names: Object.values(CONFIG.FIELD),
-          filter: {
-            conjunction: 'and',
-            conditions: [{
-              field_name: CONFIG.FIELD.ID,
-              operator: 'is',
-              value: id
-            }]
-          },
-          page_size: 1
-        })
-      })
-      const data = await resp.json()
-      if (data.code !== 0) throw new Error('查询多维表格失败：' + data.msg)
-      return data.data?.items || []
-    }
+  const token = await getToken()
+  // 同样加上 CORS 代理地址
+  const url = `https://corsproxy.io/?https://open.feishu.cn/open-apis/bitable/v1/apps/${CONFIG.APP_TOKEN}/tables/${CONFIG.TABLE_ID}/records/search`
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      field_names: Object.values(CONFIG.FIELD),
+      filter: {
+        conjunction: 'and',
+        conditions: [{
+          field_name: CONFIG.FIELD.ID,
+          operator: 'is',
+          value: id
+        }]
+      },
+      page_size: 1
+    })
+  })
+  const data = await resp.json()
+  if (data.code !== 0) throw new Error('查询多维表格失败：' + data.msg)
+  return data.data?.items || []
+}
 
     // 显示结果（完全匹配健康证样式）
     function showResult(record) {
