@@ -3,28 +3,148 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>健康证扫码查询</title>
+<title>健康证查询结果</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:system-ui;padding:20px;max-width:500px;margin:0 auto;background:#f5f5f5}
-  .title{text-align:center;margin:20px 0;font-size:20px}
-  #video{width:100%;border-radius:12px;background:#000}
-  #result{background:white;padding:20px;border-radius:12px;margin-top:16px;display:none}
-  .avatar{width:80px;height:80px;border-radius:50%;object-fit:cover;margin-bottom:10px}
-  .info p{margin:6px 0;font-size:15px}
-  .tip{color:#666;text-align:center;margin:10px 0}
+  body{font-family:"Microsoft Yahei",sans-serif;background:#fff;}
+  .header{
+    background: linear-gradient(to bottom, #e0f3ff, #b3e0ff);
+    padding:15px 0;
+    text-align:center;
+    border-bottom:1px solid #99ccff;
+  }
+  .header .title{
+    font-size:20px;
+    font-weight:bold;
+    color:#000;
+  }
+  .header .sub-title{
+    font-size:14px;
+    color:#666;
+    margin-top:4px;
+  }
+  .content{
+    padding:20px;
+    max-width:500px;
+    margin:0 auto;
+  }
+  .avatar{
+    width:180px;
+    height:240px;
+    object-fit:cover;
+    display:block;
+    margin:0 auto 20px;
+    border:1px solid #ddd;
+  }
+  .info-row{
+    display:flex;
+    margin:10px 0;
+    font-size:16px;
+    line-height:1.8;
+  }
+  .info-row .label{
+    width:100px;
+    color:#333;
+    font-weight:500;
+  }
+  .info-row .value{
+    flex:1;
+    color:#000;
+  }
+  .valid-period{
+    display:flex;
+    margin:10px 0;
+    font-size:16px;
+    line-height:1.8;
+  }
+  .valid-period .label{
+    width:100px;
+    color:#333;
+    font-weight:500;
+  }
+  .valid-period .value{
+    flex:1;
+    color:#000;
+  }
+  .issuer{
+    text-align:center;
+    margin-top:30px;
+    font-size:14px;
+    color:#b32424;
+  }
+  #scan-area{
+    display:none;
+  }
+  #scan-area.active{
+    display:block;
+  }
+  #video{
+    width:100%;
+    height:300px;
+    background:#000;
+    margin-bottom:10px;
+  }
+  .tip{
+    text-align:center;
+    color:#666;
+    margin:10px 0;
+  }
+  button{
+    display:block;
+    width:80%;
+    margin:20px auto;
+    padding:10px;
+    background:#0066cc;
+    color:#fff;
+    border:none;
+    border-radius:6px;
+    font-size:16px;
+  }
 </style>
 </head>
-
 <body>
-<div class="title">健康证扫码查询</div>
-<video id="video" autoplay playsinline></video>
-<div class="tip">请将二维码对准框内</div>
-<div id="result"></div>
+<div id="scan-area" class="active">
+  <video id="video" autoplay playsinline></video>
+  <div class="tip">请将二维码对准框内</div>
+</div>
+
+<div id="result-area" style="display:none;">
+  <div class="header">
+    <div class="title">沈阳市 从业人员<br>健康体检 合格证明</div>
+    <div class="sub-title">网页由 36.129.18.90 提供</div>
+  </div>
+  <div class="content">
+    <img id="avatar" class="avatar" src="" alt="头像">
+    <div class="info-row">
+      <div class="label">姓名：</div>
+      <div class="value" id="name"></div>
+      <div class="label">性别：</div>
+      <div class="value" id="gender"></div>
+    </div>
+    <div class="info-row">
+      <div class="label">年龄：</div>
+      <div class="value" id="age"></div>
+      <div class="label">健康证号：</div>
+      <div class="value" id="cardNo"></div>
+    </div>
+    <div class="info-row">
+      <div class="label">行业：</div>
+      <div class="value" id="industry"></div>
+      <div class="label">单位：</div>
+      <div class="value" id="unit"></div>
+    </div>
+    <div class="valid-period">
+      <div class="label">有效期：</div>
+      <div class="value" id="validPeriod"></div>
+    </div>
+    <div class="issuer" id="issuer"></div>
+    <button onclick="restartScan()">重新扫码</button>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
-// ===================== 填写你的4个参数 =====================
+// ===================== 填写你的飞书参数 =====================
 const APP_ID = '你的AppID';
 const APP_SECRET = '你的AppSecret';
 const APP_TOKEN = '多维表格app_token';
@@ -32,10 +152,11 @@ const TABLE_ID = '数据表table_id';
 // ==========================================================
 
 const video = document.getElementById('video');
-const result = document.getElementById('result');
+const scanArea = document.getElementById('scan-area');
+const resultArea = document.getElementById('result-area');
 let scanning = true;
 
-// 1. 启动摄像头扫码
+// 启动扫码
 async function startScan() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -49,7 +170,7 @@ async function startScan() {
   }
 }
 
-// 2. 循环扫码
+// 扫码循环
 function scanLoop() {
   if (!scanning) return;
   const canvas = document.createElement('canvas');
@@ -69,23 +190,22 @@ function scanLoop() {
   }
 }
 
-// 3. 获取飞书token
+// 获取飞书token
 async function getToken() {
   const res = await fetch('https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ app_id: cli_a93270618db81bc9, QohPjXwBEsrIwYd6y5FsRefmlGwfN6Bx: APP_SECRET })
   });
   const d = await res.json();
   return d.access_token;
 }
 
-// 4. 按健康证号查询
+// 按健康证号查询
 async function queryByCardId(cardId) {
-  result.innerHTML = '查询中...';
-  result.style.display = 'block';
   try {
     const token = await getToken();
-    const url = `https://open.feishu.cn/open-apis/bitable/v1/apps/${APP_TOKEN}/tables/${TABLE_ID}/records`;
+    const url = `https://open.feishu.cn/open-apis/bitable/v1/apps/${XkinwFwUQi0eQTkPdUCcuJZtn1d}/tables/${tbl35kCkc3xqWf7B}/records`;
     const res = await fetch(url, {
       method: 'POST',
       headers: {
@@ -101,38 +221,48 @@ async function queryByCardId(cardId) {
     });
     const data = await res.json();
     if (data.code !== 0) {
-      result.innerHTML = '查询错误：' + data.msg;
+      alert('查询错误：' + data.msg);
+      restartScan();
       return;
     }
     if (!data.data.items.length) {
-      result.innerHTML = '未找到该健康证信息';
+      alert('未找到该健康证信息');
+      restartScan();
       return;
     }
-    showData(data.data.items[0].fields);
+    showResult(data.data.items[0].fields);
   } catch (e) {
-    result.innerHTML = '网络异常，请重试';
+    alert('网络异常，请重试');
+    restartScan();
   }
 }
 
-// 5. 展示结果
-function showData(fields) {
-  result.innerHTML = `
-    <div style="text-align:center">
-      <img src="${fields.头像URL || ''}" class="avatar" onerror="this.style.display='none'">
-    </div>
-    <div class="info">
-      <p>姓名：${fields.姓名 || '-'}</p>
-      <p>性别：${fields.性别 || '-'}</p>
-      <p>单位：${fields.单位 || '-'}</p>
-      <p>有效期：${fields.有效期 || '-'}</p>
-    </div>
-    <div style="text-align:center;margin-top:16px">
-      <button onclick="window.location.reload()" style="padding:8px 16px">重新扫码</button>
-    </div>
-  `;
+// 渲染结果（和截图完全对齐）
+function showResult(fields) {
+  scanArea.style.display = 'none';
+  resultArea.style.display = 'block';
+  
+  document.getElementById('avatar').src = fields.头像URL || '';
+  document.getElementById('name').textContent = fields.姓名 || '-';
+  document.getElementById('gender').textContent = fields.性别 || '-';
+  document.getElementById('age').textContent = fields.年龄 || '-';
+  document.getElementById('cardNo').textContent = fields.健康证号 || '-';
+  document.getElementById('industry').textContent = fields.行业 || '-';
+  document.getElementById('unit').textContent = fields.单位 || '-';
+  document.getElementById('validPeriod').textContent = fields.有效期 || '-';
+  document.getElementById('issuer').textContent = fields.制证单位 || '-';
 }
 
-startScan();
+// 重新扫码
+function restartScan() {
+  scanning = true;
+  scanArea.style.display = 'block';
+  resultArea.style.display = 'none';
+  startScan();
+}
+
+// 页面加载后自动启动扫码
+window.onload = startScan;
 </script>
 </body>
 </html>
